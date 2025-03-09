@@ -1,4 +1,5 @@
 import { j } from "./jstack";
+import { imageRouter } from "./routers/image-router";
 import { postRouter } from "./routers/post-router";
 import { textRouter } from "./routers/text-router";
 
@@ -21,6 +22,7 @@ const api = j
 const appRouter = j.mergeRouters(api, {
   post: postRouter,
   text: textRouter,
+  image: imageRouter,
 });
 
 export type AppRouter = typeof appRouter;

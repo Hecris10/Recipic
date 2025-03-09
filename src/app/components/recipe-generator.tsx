@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Volume2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { client } from "@/lib/client"
 
 type MealType = "breakfast" | "lunch" | "dinner"
 type Recipe = {
@@ -45,75 +46,55 @@ export function RecipeGenerator() {
   }
 
   // Generate recipes based on image and meal type
-  const generateRecipes = () => {
+  const generateRecipes = async () => {
     if (!imagePreview && !manualIngredients.trim()) {
-      return
+      console.warn("⚠️ No image or manual ingredients provided.");
+      return;
     }
+  
+    console.log("🔍 Sending request to API...");
+    console.log("📸 Image Preview:", imagePreview ? "Image detected" : "No image");
+    console.log("📝 Manual Ingredients:", manualIngredients);
+  
+    setIsGenerating(true);
+  
+    try {
 
-    setIsGenerating(true)
+      
+      const response = await client.image.getImageAnalysis.$post({
+        text: manualIngredients,    
+        imagePath: imagePreview || "",
+      });
 
-    // Simulate API call with mock data
-    setTimeout(() => {
-      const mockRecipes: Recipe[] = [
-        {
-          title: `${
-            selectedMeal === "breakfast"
-              ? "Fluffy Pancakes"
-              : selectedMeal === "lunch"
-                ? "Vegetable Stir Fry"
-                : "Baked Salmon with Vegetables"
-          }`,
-          ingredients: [
-            "2 cups all-purpose flour",
-            "2 tablespoons sugar",
-            "1 tablespoon baking powder",
-            "1/2 teaspoon salt",
-            "2 eggs",
-            "1 1/2 cups milk",
-            "2 tablespoons melted butter",
-          ],
-          instructions: [
-            "Mix dry ingredients in a bowl.",
-            "In another bowl, whisk eggs, milk, and butter.",
-            "Combine wet and dry ingredients until just mixed.",
-            "Heat a lightly oiled griddle over medium-high heat.",
-            "Pour batter onto the griddle, using approximately 1/4 cup for each pancake.",
-            "Cook until bubbles form and edges are dry, then flip and cook until browned.",
-          ],
-          image: "/placeholder.svg?height=300&width=400",
-        },
-        {
-          title: `${
-            selectedMeal === "breakfast"
-              ? "Avocado Toast"
-              : selectedMeal === "lunch"
-                ? "Quinoa Salad"
-                : "Pasta Primavera"
-          }`,
-          ingredients: [
-            "2 slices whole grain bread",
-            "1 ripe avocado",
-            "2 eggs",
-            "Salt and pepper to taste",
-            "Red pepper flakes (optional)",
-            "Lemon juice",
-          ],
-          instructions: [
-            "Toast bread until golden and firm.",
-            "Remove pits from avocados and scoop into a bowl.",
-            "Add lemon juice, salt and pepper and mash until desired consistency.",
-            "Spread avocado mixture on the toast.",
-            "Top with fried or poached eggs.",
-            "Sprinkle with additional salt, pepper, and red pepper flakes if desired.",
-          ],
-          image: "/placeholder.svg?height=300&width=400",
-        },
-      ]
-
-      setRecipes(mockRecipes)
-      setIsGenerating(false)
-    }, 1500)
-  }
+  
+      if (!response.ok) {
+        console.error("❌ API Error: Response not OK", response.status, response.statusText);
+        return;
+      }
+  
+      const data: { result?: { data?: { success?: boolean; message?: string; error?: string } } } = await response.json();
+      console.log("✅ API Response:", data);
+  
+      if (data.result?.data?.success && data.result?.data?.message) {
+        setRecipes([
+          {
+            title: "Generated Recipe",
+            ingredients: ["Ingredient 1", "Ingredient 2"], // Replace with real API data
+            instructions: ["Step 1", "Step 2"],
+            image: imagePreview || "/placeholder.svg",
+          },
+        ]);
+      } else {
+        console.error("❌ API Error:", data.result?.data?.error || "Unknown error");
+      }
+    } catch (error) {
+      console.error("🔥 Fetch Error:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  
 
   // Text-to-speech function
   const speakRecipe = (recipe: Recipe) => {
